@@ -1,134 +1,323 @@
-import 'package:gsheets/gsheets.dart';
+import 'dart:developer';
+import 'dart:io';
 
-/// Your google auth credentials
-///
-/// how to get credentials - https://medium.com/@a.marenkov/how-to-get-credentials-for-google-sheets-456b7e88c430
-const _credentials = r'''
-{
-  "type": "service_account",
-  "project_id": "gsheets1-393813",
-  "private_key_id": "715dc06a90da439a6784d6d5b5446d73e32e18aa",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCXCw6MqqFLrLl1\nYNt/x7SKC5f3jfabRohWXrs4JU/C0o4CA/jx1SqMQL/YT7mR5MSYNpSKz5shwLFB\nDx/Y4bSnQEeDqdMM+lJOlTQHmQKpkRlTShm6IMmr/yAMfrJ2JckLakYPiu+VIUvm\n4VbML5YIc8KsYSJMhOZFoybju80hie2CXZgCvENznXuEmLy5zEcuMPnfw+tAroRi\nNZo3Dvtz+Njrx2k7bDat0DhB37e7Ud7bhvYeXrL7sMcNuxiy+sGaw8tgUL6BG6WB\nIJxhQtsIhQdySJLB488RQsv1OJK7mSSK2vJiWokouwIsfEmeGFouTBqljXjECCRH\nkeKZeQWlAgMBAAECgf9i8zwdaGExnmJHd/8V3uEMiP2fKlZH4E3uJScKJBIXDPXC\ncwVIvhOkhGBGmdIDsOadCh78Gxx62GbJ7mLdrOjrPNvKZZ7d7QkEcjIP2TkSzBhZ\neDeyJCPBlVwOjzY4oji9202CH8GK8TnfHhBj1fwTghJy5t/mxA2DNmqNwTZXk/c3\njDglKzBIzPLp1fT4/vE9VEOWCckA8iYN8pgWhsZY/qTwUIv+P3jdlu1Hv6KElmca\nRsEjg5OaKM2hFU/cyGcw5Hxp8ttxz7O3vpqOtlaCaRs7B74Uo0yfwKzkhvVG4i3X\n7wbs8IbOC3G4IEIbyvTdfl+keFX+Ik3shUetBqECgYEAzJIxV1z16im64gh2rdFA\nIDQi6IUd6orOF9TF7dmK/2cyxUbpIbjJ6yh/CsPBFXu0Gb59ZsMhlEGa8EeFs4wQ\nSBfmKYfhaKEb2wABuSxvKu8S0/5fP3dShrMkAjeu7Hbf9e3C9ikH+h29MeA681G7\nA8Y8wF6mJnuo3+ywwMdibx0CgYEAvQPpRX34WOb9G9aFeXDPt2zV32HryakxmfAZ\ntjc9D+qGwk1Hm72YoTNwoj47w//7Ekf+9Rh64iL/i3Qfvd6wiiwevoy0bOIzf/yo\nJiVaARGwYzfd3gcPqwznCkpOEy6LIk9g8WFvEwuuBmOAojpgZJCNeogIW/1vrBBr\nSRKDAikCgYEAm3YN4SJYD5ee2d8ssXLvlImKbcGbtn29mQatU8+affVi8+CrkmDn\nsbmYsgmJVlYny9ijW9C2WABzSl5QEN5EEUV4N993QRgOHyOmK57E7I+6czhAEe8P\n3CWPG9BNMo40LKR/IKqV0VGAUcLhib92q6uex2ImSeB3uZQZzqa2+1ECgYAKuF8R\nnuxn9mnim08krR5K0/RpX/9kh6EVjwWWTRm8flu4R3PJRH6UnftEaG0xV6Jgzg6K\nziGiE8QUn7hxJ2Ex5QC1Y/uTtVygZK8QwsuRBfTQG8oMnq/nzqqH7eDxu5EOmBvy\ndMk89kufdyNDkDYJXh14FqEKvpwH0UKUeWVOyQKBgQCbx+55lqYLH366Cas3t6Y5\nomK/lSbcQobt11it5EHnXKjZCNdJs8KRz4J7IoZl+lUU7zwK+kv2HcHtXGOI9P70\nJ2Kbuf2tUMaLjFefoFgqJyIPU/0OaP99TCoxqkT1ZG9a8wwMR8l3nItMKh6u0IAC\ncZxq9Axmd53Pu3UgEW06yw==\n-----END PRIVATE KEY-----\n",
-  "client_email": "gsheets1@gsheets1-393813.iam.gserviceaccount.com",
-  "client_id": "103301161868394051520",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/gsheets1%40gsheets1-393813.iam.gserviceaccount.com",
-  "universe_domain": "googleapis.com"
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_gsheet/gsheet.dart';
+import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+void main() => runApp(MaterialApp(home: MyHome()));
+
+class MyHome extends StatelessWidget {
+  final _googleSheetKey = "gsheetkey";
+  final GoogleSheets googleSheets = GoogleSheets();
+  final storage = new FlutterSecureStorage();
+  final TextEditingController _controller = TextEditingController();
+  MyHome({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    googleSheets.getData();
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Google Sheets'),
+      ),
+      body: FutureBuilder(
+        future: Future.wait([readGoogleSheetID()]),
+        builder: (context, snapshot) {
+          // debugPrint(snapshot.data);
+          if (snapshot.hasData) {
+            _controller.text = snapshot.data![0]!;
+            debugPrint(_controller.text);
+          }
+          return Container(
+            child: Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.all(10),
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: Text("Google Sheet ID"),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: TextField(
+                    controller: _controller,
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      hintText: 'Google Sheet ID',
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    var googleSheetID = _controller.text;
+                    debugPrint("Google ID : ${_controller.text}");
+                    await storage.write(
+                        key: _googleSheetKey, value: googleSheetID);
+                    final qrcode = await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const QRViewExample(),
+                      ),
+                    );
+                    debugPrint("qrcodeuuu : ${qrcode!.code}");
+                    var data = qrcode!.code;
+                    var message =
+                        await googleSheets.insertData(googleSheetID, data);
+                    _showToast(context, message);
+                    googleSheets.getData();
+                  },
+                  child: const Text('Scan Barcode / QRCode '),
+                ),
+                Flexible(
+                  child: listview(),
+                )
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showToast(BuildContext context, String message) {
+    final scaffold = ScaffoldMessenger.of(context);
+    scaffold.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: SnackBarAction(
+            label: 'OK', onPressed: scaffold.hideCurrentSnackBar),
+      ),
+    );
+  }
+
+  Future<String?> readGoogleSheetID() async {
+    return await storage.read(key: _googleSheetKey);
+  }
+
+  Widget listview() {
+    return StreamBuilder<List<String>>(
+      stream: googleSheets.counterStream,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          var list = snapshot.data;
+          var idx = list!.length - 1;
+          return Container(
+            child: ListView.builder(
+              itemCount: list!.length,
+              scrollDirection: Axis.vertical,
+              itemBuilder: (BuildContext context, int index) {
+                if (index == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        const Text(
+                          'No',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                        const SizedBox(
+                          width: 10,
+                        ),
+                        Text(
+                          list[index],
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ],
+                    ),
+                  );
+                } else {
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 0, 0),
+                    child: Row(
+                      children: [
+                        Text("${idx--}"),
+                        const SizedBox(
+                          width: 10,
+                        ),
+                        Text(list[index]),
+                      ],
+                    ),
+                  );
+                }
+              },
+            ),
+          );
+        } else {
+          return const CircularProgressIndicator();
+        }
+      },
+    );
+  }
 }
-''';
 
-/// Your spreadsheet id
-///
-/// It can be found in the link to your spreadsheet -
-/// link looks like so https://docs.google.com/spreadsheets/d/YOUR_SPREADSHEET_ID/edit#gid=0
-/// [YOUR_SPREADSHEET_ID] in the path is the id your need
-const _spreadsheetId = '1cR2r9plrdguDJb4_k3NfKOmAqQF6Ef7SpN1HV263fMk';
+class QRViewExample extends StatefulWidget {
+  const QRViewExample({Key? key}) : super(key: key);
 
-void main() async {
-  // init GSheets
-  final gsheets = GSheets(_credentials);
-  // fetch spreadsheet by its id
-  final ss = await gsheets.spreadsheet(_spreadsheetId);
+  @override
+  State<StatefulWidget> createState() => _QRViewExampleState();
+}
 
-  print(ss.data.namedRanges.byName.values
-      .map((e) => {
-            'name': e.name,
-            'start':
-                '${String.fromCharCode((e.range?.startColumnIndex ?? 0) + 97)}${(e.range?.startRowIndex ?? 0) + 1}',
-            'end':
-                '${String.fromCharCode((e.range?.endColumnIndex ?? 0) + 97)}${(e.range?.endRowIndex ?? 0) + 1}'
-          })
-      .join('\n'));
+class _QRViewExampleState extends State<QRViewExample> {
+  Barcode? result;
+  QRViewController? controller;
+  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
 
-  // get worksheet by its title
-  var sheet = ss.worksheetByTitle('example');
-  // create worksheet if it does not exist yet
-  sheet ??= await ss.addWorksheet('example');
+  // In order to get hot reload to work we need to pause the camera if the platform
+  // is android, or resume the camera if the platform is iOS.
+  @override
+  void reassemble() {
+    super.reassemble();
+    if (Platform.isAndroid) {
+      controller!.pauseCamera();
+    }
+    controller!.resumeCamera();
+  }
 
-  // update cell at 'B2' by inserting string 'new'
-  await sheet.values.insertValue('new', column: 2, row: 2);
-  // prints 'new'
-  print(await sheet.values.value(column: 2, row: 2));
-  // get cell at 'B2' as Cell object
-  final cell = await sheet.cells.cell(column: 2, row: 2);
-  // prints 'new'
-  print(cell.value);
-  // update cell at 'B2' by inserting 'new2'
-  await cell.post('new2');
-  // prints 'new2'
-  print(cell.value);
-  // also prints 'new2'
-  print(await sheet.values.value(column: 2, row: 2));
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: <Widget>[
+          Expanded(flex: 4, child: _buildQrView(context)),
+          // Expanded(
+          //   flex: 1,
+          //   child: FittedBox(
+          //     fit: BoxFit.contain,
+          //     child: Column(
+          //       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          //       children: <Widget>[
+          //         if (result != null)
+          //           Text(
+          //               'Barcode Type: ${describeEnum(result!.format)}   Data: ${result!.code}')
+          //         else
+          //           const Text('Scan a code'),
+          //         Row(
+          //           mainAxisAlignment: MainAxisAlignment.center,
+          //           crossAxisAlignment: CrossAxisAlignment.center,
+          //           children: <Widget>[
+          //             Container(
+          //               margin: const EdgeInsets.all(8),
+          //               child: ElevatedButton(
+          //                 onPressed: () async {
+          //                   await controller?.toggleFlash();
+          //                   setState(() {});
+          //                 },
+          //                 child: FutureBuilder(
+          //                   future: controller?.getFlashStatus(),
+          //                   builder: (context, snapshot) {
+          //                     return Text('Flash: ${snapshot.data}');
+          //                   },
+          //                 ),
+          //               ),
+          //             ),
+          //             Container(
+          //               margin: const EdgeInsets.all(8),
+          //               child: ElevatedButton(
+          //                   onPressed: () async {
+          //                     await controller?.flipCamera();
+          //                     setState(() {});
+          //                   },
+          //                   child: FutureBuilder(
+          //                     future: controller?.getCameraInfo(),
+          //                     builder: (context, snapshot) {
+          //                       if (snapshot.data != null) {
+          //                         return Text(
+          //                             'Camera facing ${describeEnum(snapshot.data!)}');
+          //                       } else {
+          //                         return const Text('loading');
+          //                       }
+          //                     },
+          //                   )),
+          //             )
+          //           ],
+          //         ),
+          //         Row(
+          //           mainAxisAlignment: MainAxisAlignment.center,
+          //           crossAxisAlignment: CrossAxisAlignment.center,
+          //           children: <Widget>[
+          //             Container(
+          //               margin: const EdgeInsets.all(8),
+          //               child: ElevatedButton(
+          //                 onPressed: () async {
+          //                   await controller?.pauseCamera();
+          //                 },
+          //                 child: const Text('pause',
+          //                     style: TextStyle(fontSize: 20)),
+          //               ),
+          //             ),
+          //             Container(
+          //               margin: const EdgeInsets.all(8),
+          //               child: ElevatedButton(
+          //                 onPressed: () async {
+          //                   await controller?.resumeCamera();
+          //                 },
+          //                 child: const Text('resume',
+          //                     style: TextStyle(fontSize: 20)),
+          //               ),
+          //             )
+          //           ],
+          //         ),
+          //       ],
+          //     ),
+          //   ),
+          // )
+        ],
+      ),
+    );
+  }
 
-  // insert list in row #1
-  final firstRow = ['index', 'letter', 'number', 'label'];
-  await sheet.values.insertRow(1, firstRow);
-  // prints [index, letter, number, label]
-  print(await sheet.values.row(1));
+  Widget _buildQrView(BuildContext context) {
+    // For this example we check how width or tall the device is and change the scanArea and overlay accordingly.
+    var scanArea = (MediaQuery.of(context).size.width < 400 ||
+            MediaQuery.of(context).size.height < 400)
+        ? 300.0
+        : 300.0;
+    // To ensure the Scanner view is properly sizes after rotation
+    // we need to listen for Flutter SizeChanged notification and update controller
+    return QRView(
+      key: qrKey,
+      onQRViewCreated: _onQRViewCreated,
+      overlay: QrScannerOverlayShape(
+          borderColor: Colors.red,
+          borderRadius: 10,
+          borderLength: 30,
+          borderWidth: 10,
+          cutOutSize: scanArea),
+      onPermissionSet: (ctrl, p) => _onPermissionSet(context, ctrl, p),
+    );
+  }
 
-  // insert list in column 'A', starting from row #2
-  final firstColumn = ['0', '1', '2', '3', '4'];
-  await sheet.values.insertColumn(1, firstColumn, fromRow: 2);
-  // prints [0, 1, 2, 3, 4, 5]
-  print(await sheet.values.column(1, fromRow: 2));
+  void _onQRViewCreated(QRViewController controller) {
+    setState(() {
+      this.controller = controller;
+    });
+    controller.scannedDataStream.listen((scanData) {
+      setState(() {
+        result = scanData;
+        debugPrint("result : ${result}");
+        if (result != null) {
+          controller.dispose();
+          Navigator.of(context).pop(result);
+        }
+      });
+    });
+  }
 
-  // insert list into column named 'letter'
-  final secondColumn = ['a', 'b', 'c', 'd', 'e'];
-  await sheet.values.insertColumnByKey('letter', secondColumn);
-  // prints [a, b, c, d, e, f]
-  print(await sheet.values.columnByKey('letter'));
+  void _onPermissionSet(BuildContext context, QRViewController ctrl, bool p) {
+    log('${DateTime.now().toIso8601String()}_onPermissionSet $p');
+    if (!p) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('no Permission')),
+      );
+    }
+  }
 
-  // insert map values into column 'C' mapping their keys to column 'A'
-  // order of map entries does not matter
-  final thirdColumn = {
-    '0': '1',
-    '1': '2',
-    '2': '3',
-    '3': '4',
-    '4': '5',
-  };
-  await sheet.values.map.insertColumn(3, thirdColumn, mapTo: 1);
-  // prints {index: number, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6}
-  print(await sheet.values.map.column(3));
-
-  // insert map values into column named 'label' mapping their keys to column
-  // named 'letter'
-  // order of map entries does not matter
-  final fourthColumn = {
-    'a': 'a1',
-    'b': 'b2',
-    'c': 'c3',
-    'd': 'd4',
-    'e': 'e5',
-  };
-  await sheet.values.map.insertColumnByKey(
-    'label',
-    fourthColumn,
-    mapTo: 'letter',
-  );
-  // prints {a: a1, b: b2, c: c3, d: d4, e: e5, f: f6}
-  print(await sheet.values.map.columnByKey('label', mapTo: 'letter'));
-
-  // appends map values as new row at the end mapping their keys to row #1
-  // order of map entries does not matter
-  final secondRow = {
-    'index': '5',
-    'letter': 'f',
-    'number': '6',
-    'label': 'f6',
-  };
-  await sheet.values.map.appendRow(secondRow);
-  // prints {index: 5, letter: f, number: 6, label: f6}
-  print(await sheet.values.map.lastRow());
-
-  // get first row as List of Cell objects
-  final cellsRow = await sheet.cells.row(1);
-  // update each cell's value by adding char '_' at the beginning
-  cellsRow.forEach((cell) => cell.value = '_${cell.value}');
-  // actually updating sheets cells
-  await sheet.cells.insert(cellsRow);
-  // prints [_index, _letter, _number, _label]
-  print(await sheet.values.row(1));
+  @override
+  void dispose() {
+    controller?.dispose();
+    super.dispose();
+  }
 }
